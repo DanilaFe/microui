@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {errorToDOM} from "./error.js";
+import {errorToDOM} from "./error";
+import {BaseUpdateView, IMountOptions, IObservableValue, MountElement} from "./BaseUpdateView";
 
-export function mountView(view, mountArgs = undefined) {
-    let node;
+export function mountView<T extends IObservableValue>(view: BaseUpdateView<T>, mountArgs: IMountOptions | undefined = undefined): MountElement | null {
+    let node: MountElement | null;
     try {
         node = view.mount(mountArgs);
     } catch (err) {
