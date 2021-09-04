@@ -30,6 +30,7 @@ export abstract class BaseUpdateView<T extends IObservableValue> {
     protected _boundUpdateFromValue: ((props: string[]) => void) | null
 
     abstract update(value: T, props: string[]): void;
+    abstract root(): MountElement | null;
 
     constructor(value :T) {
         this._value = value;
