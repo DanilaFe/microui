@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS } from "./html.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, BasicAttributes} from "./html.js";
 import {mountView} from "./utils.js";
-import {BaseUpdateView} from "./BaseUpdateView.js";
+import {BaseUpdateView, IObservableValue, IMountOptions, MountElement} from "./BaseUpdateView.js";
 
-function objHasFns(obj) {
+function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: boolean } {
     for(const value of Object.values(obj)) {
         if (typeof value === "function") {
             return true;
@@ -26,6 +26,8 @@ function objHasFns(obj) {
     }
     return false;
 }
+
+type RenderFn<T> = (t: TemplateBuilder<T>, vm: T) => MountElement;
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
     to change the structure on a condition, use a subtemplate (if)
@@ -39,8 +41,14 @@ function objHasFns(obj) {
         - add subviews inside the template
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
-export class TemplateView extends BaseUpdateView {
-    constructor(value, render = undefined) {
+export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> {
+    private _render: RenderFn<T> | null;
+    private _eventListeners: { node: Element, name: string, fn: (event: Event) => void, useCapture: boolean }[] | null;
+    private _bindings: (() => void)[] | null
+    private _subViews: TemplateView<T>[] | null;
+    private _root: MountElement | null;
+
+    constructor(value: T, render: RenderFn<T> | null = null) {
         super(value);
         // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
@@ -50,7 +58,7 @@ export class TemplateView extends BaseUpdateView {
         this._root = null;
     }
 
-    _attach() {
+    _attach(): void {
         if (this._eventListeners) {
             for (let {node, name, fn, useCapture} of this._eventListeners) {
                 node.addEventListener(name, fn, useCapture);
@@ -58,7 +66,7 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    _detach() {
+    _detach(): void {
         if (this._eventListeners) {
             for (let {node, name, fn, useCapture} of this._eventListeners) {
                 node.removeEventListener(name, fn, useCapture);
@@ -66,13 +74,15 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    mount(options) {
+    // Note: mount can fail with no exception outwardly visible.
+    // Thus, this function is nullable, and should be treated as such.
+    mount(options?: IMountOptions): MountElement | null {
         const builder = new TemplateBuilder(this);
         try {
             if (this._render) {
                 this._root = this._render(builder, this._value);
-            } else if (this.render) {   // overriden in subclass
-                this._root = this.render(builder, this._value);
+            } else if (this["render"]) {   // overriden in subclass
+                this._root = this["render"](builder, this._value);
             } else {
                 throw new Error("no render function passed in, or overriden in subclass");
             }
@@ -85,7 +95,7 @@ export class TemplateView extends BaseUpdateView {
         return this._root;
     }
 
-    unmount() {
+    unmount(): void {
         this._detach();
         super.unmount();
         if (this._subViews) {
@@ -95,11 +105,11 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    root() {
+    root(): MountElement | null {
         return this._root;
     }
 
-    update(value) {
+    update(value: T, props?: string[]): void {
         this._value = value;
         if (this._bindings) {
             for (const binding of this._bindings) {
@@ -108,35 +118,36 @@ export class TemplateView extends BaseUpdateView {
         }
     }
 
-    _addEventListener(node, name, fn, useCapture = false) {
+    _addEventListener(node: Element, name: string, fn: (event: Event) => void, useCapture: boolean = false): void {
         if (!this._eventListeners) {
             this._eventListeners = [];
         }
         this._eventListeners.push({node, name, fn, useCapture});
     }
 
-    _addBinding(bindingFn) {
+    _addBinding(bindingFn: () => void): void {
         if (!this._bindings) {
             this._bindings = [];
         }
         this._bindings.push(bindingFn);
     }
 
-    addSubView(view) {
+    addSubView(view: TemplateView<T>): void {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
     }
 
-    removeSubView(view) {
+    removeSubView(view: TemplateView<T>): void {
+        if (!this._subViews) { return; }
         const idx = this._subViews.indexOf(view);
         if (idx !== -1) {
             this._subViews.splice(idx, 1);
         }
     }
 
-    updateSubViews(value, props) {
+    updateSubViews(value: T, props: string[]) {
         if (this._subViews) {
             for (const v of this._subViews) {
                 v.update(value, props);
@@ -146,7 +157,7 @@ export class TemplateView extends BaseUpdateView {
 }
 
 // what is passed to render
-class TemplateBuilder {
+class TemplateBuilder<T> {
     constructor(templateView) {
         this._templateView = templateView;
         this._closed = false;
