@@ -1,0 +1,9 @@
+{
+  "name": "microui",
+  "version": "1.0.0",
+  "description": "Bruno Windels' pure JavaScript UI library.",
+  "main": "index.js",
+  "author": "Matrix.org",
+  "license": "Apache-2.0",
+  "private": false
+}
