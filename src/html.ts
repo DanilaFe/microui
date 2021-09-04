@@ -16,12 +16,16 @@ limitations under the License.
 
 // DOM helper functions
 
-export function isChildren(children) {
+export type ClassNames<T> = { [className: string]: boolean | ((value?: T) => boolean) }
+export type BasicAttributes<T> = { className: ClassNames<T> } & { [attribute: string]: boolean | string }
+export type Child = string | Text | Element
+
+export function isChildren(children: BasicAttributes<never> | Child | Child[]): children is Child | Child[] {
     // children should be an not-object (that's the attributes), or a domnode, or an array
-    return typeof children !== "object" || !!children.nodeType || Array.isArray(children);
+    return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 
-export function classNames(obj, value) {
+export function classNames<T>(obj: ClassNames<T>, value?: T): string{
     return Object.entries(obj).reduce((cn, [name, enabled]) => {
         if (typeof enabled === "function") {
             enabled = enabled(value);
@@ -34,7 +38,7 @@ export function classNames(obj, value) {
     }, "");
 }
 
-export function setAttribute(el, name, value) {
+export function setAttribute(el: Element, name: string, value: string | boolean): void {
     if (name === "className") {
         name = "class";
     }
@@ -48,22 +52,24 @@ export function setAttribute(el, name, value) {
     }
 }
 
-export function el(elementName, attributes, children) {
+export function el(elementName: string, attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]): Element {
     return elNS(HTML_NS, elementName, attributes, children);
 }
 
-export function elNS(ns, elementName, attributes, children) {
+export function elNS(ns: string, elementName: string, attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]): Element {
     if (attributes && isChildren(attributes)) {
         children = attributes;
-        attributes = null;
+        attributes = undefined;
     }
 
     const e = document.createElementNS(ns, elementName);
 
     if (attributes) {
         for (let [name, value] of Object.entries(attributes)) {
-            if (name === "className" && typeof value === "object" && value !== null) {
-                value = classNames(value);
+            if (typeof value === "object") {
+                // Only className should ever be an object; be careful
+                // here anyway and ignore object-valued non-className attributes.
+                value = (value !== null && name === "className") ? classNames(value) : false;
             }
             setAttribute(e, name, value);
         }
@@ -74,7 +80,7 @@ export function elNS(ns, elementName, attributes, children) {
             children = [children];
         }
         for (let c of children) {
-            if (!c.nodeType) {
+            if (typeof c === "string") {
                 c = text(c);
             }
             e.appendChild(c);
@@ -83,7 +89,7 @@ export function elNS(ns, elementName, attributes, children) {
     return e;
 }
 
-export function text(str) {
+export function text(str: string): Text {
     return document.createTextNode(str);
 }
 
@@ -99,7 +105,7 @@ export const TAG_NAMES = {
     [SVG_NS]: ["svg", "circle"]
 };
 
-export const tag = {};
+export const tag: { [tagName: string]: (attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]) => Element } = {};
 
 
 for (const [ns, tags] of Object.entries(TAG_NAMES)) {
