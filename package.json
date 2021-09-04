@@ -2,8 +2,12 @@
   "name": "microui",
   "version": "1.0.0",
   "description": "Bruno Windels' pure JavaScript UI library.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "Matrix.org",
   "license": "Apache-2.0",
-  "private": false
+  "private": false,
+  "devDependencies": {
+    "typescript": "^4.4.2"
+  }
 }
