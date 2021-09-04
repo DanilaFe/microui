@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {tag} from "./html.js";
+import {tag} from "./html";
 
-export function errorToDOM(error) {
+export function errorToDOM(error: Error): Element {
     const stack = new Error().stack;
-    let callee = null;
+    let callee: string | null = null;
     if (stack) {
         callee = stack.split("\n")[1];
     }
