@@ -28,8 +28,8 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
 }
 
 export type RenderFn<T> = (t: TemplateBuilder<T>, vm: T) => MountElement;
-export type AttrValue<T> = boolean | string | ((value: T) => string | boolean) | ((event: Event) => void)
-export type Attributes<T> = { className?: ClassNames<T> } & { [attribute: string]: AttrValue<T> }
+export type AttrValue<T> = boolean | string | ((value: T) => string | boolean) | ((event: Event) => void) | ClassNames<T>
+export type Attributes<T> = { [attribute: string]: AttrValue<T> }
 
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -160,7 +160,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
 }
 
 // what is passed to render
-class TemplateBuilder<T extends IObservableValue> {
+export class TemplateBuilder<T extends IObservableValue> {
     private _templateView: TemplateView<T>;
     private _closed: boolean;
 

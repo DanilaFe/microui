@@ -17,7 +17,7 @@ limitations under the License.
 // DOM helper functions
 
 export type ClassNames<T> = { [className: string]: boolean | ((value?: T) => boolean) }
-export type BasicAttributes<T> = { className?: ClassNames<T> } & { [attribute: string]: boolean | string }
+export type BasicAttributes<T> = { [attribute: string]: ClassNames<T> | boolean | string }
 export type Child = string | Text | Element
 
 export function isChildren(children: object | Child | Child[]): children is Child | Child[] {
