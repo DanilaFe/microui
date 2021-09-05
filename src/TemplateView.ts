@@ -51,7 +51,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
     private _eventListeners: { node: Element, name: string, fn: (event: Event) => void, useCapture: boolean }[] | null;
     private _bindings: (() => void)[] | null
     private _root: MountElement | null;
-    _subViews: BaseUpdateView<T>[] | null;
+    _subViews: BaseUpdateView<IObservableValue>[] | null;
 
     constructor(value: T, render: RenderFn<T> | null = null) {
         super(value);
@@ -137,14 +137,14 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         this._bindings.push(bindingFn);
     }
 
-    addSubView(view: BaseUpdateView<T>): void {
+    addSubView(view: BaseUpdateView<IObservableValue>): void {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
     }
 
-    removeSubView(view: BaseUpdateView<T>): void {
+    removeSubView(view: BaseUpdateView<IObservableValue>): void {
         if (!this._subViews) { return; }
         const idx = this._subViews.indexOf(view);
         if (idx !== -1) {
@@ -152,7 +152,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         }
     }
 
-    updateSubViews(value: T, props: string[]) {
+    updateSubViews(value: IObservableValue, props: string[]) {
         if (this._subViews) {
             for (const v of this._subViews) {
                 v.update(value, props);
@@ -312,13 +312,13 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     // this inserts a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view: BaseUpdateView<T>, mountOptions: IMountOptions | undefined = undefined): MountElement | null {
+    view(view: BaseUpdateView<IObservableValue>, mountOptions: IMountOptions | undefined = undefined): MountElement | null {
         this._templateView.addSubView(view);
         return mountView(view, mountOptions);
     }
 
     // map a value to a view, every time the value changes
-    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => BaseUpdateView<T> | null): MountElement {
+    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => BaseUpdateView<IObservableValue> | null): MountElement {
         return this._addReplaceNodeBinding(mapFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
                 const subViews = this._templateView._subViews;
@@ -357,7 +357,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         });
     }
 
-    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => TemplateView<T>): MountElement {
+    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => TemplateView<IObservableValue>): MountElement {
         return this.mapView(
             value => !!predicate(value),
             enabled => enabled ? viewCreator(this._value) : null
