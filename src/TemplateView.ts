@@ -28,7 +28,8 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
 }
 
 export type RenderFn<T> = (t: TemplateBuilder<T>, vm: T) => MountElement;
-export type Attributes<T> = { className?: ClassNames<T> } & { [attribute: string]: boolean | string | ((value: T) => string | boolean) | ((event: Event) => void)  }
+export type AttrValue<T> = boolean | string | ((value: T) => string | boolean) | ((event: Event) => void)
+export type Attributes<T> = { className?: ClassNames<T> } & { [attribute: string]: AttrValue<T> }
 
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -220,21 +221,30 @@ class TemplateBuilder<T extends IObservableValue> {
         return node;
     }
 
+    _isEventHandler(key: string, value: AttrValue<T>): value is (event: Event) => void {
+        // This isn't actually safe, but it's incorrect to feed event handlers to
+        // non-on* attributes.
+        return key.startsWith("on") && key.length > 2 && typeof value === "function";
+    }
+
     _setNodeAttributes(node: Element, attributes: Attributes<T>): void {
         for(let [key, value] of Object.entries(attributes)) {
-            const isFn = typeof value === "function";
             // binding for className as object of className => enabled
-            if (key === "className" && typeof value === "object" && value !== null) {
+            if (typeof value === "object") {
+                if (key !== "className" || value === null) {
+                    // Ignore non-className objects.
+                    continue;
+                }
                 if (objHasFns(value)) {
                     this._addClassNamesBinding(node, value);
                 } else {
                     setAttribute(node, key, classNames(value));
                 }
-            } else if (key.startsWith("on") && key.length > 2 && isFn) {
+            } else if (this._isEventHandler(key, value)) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
                 const handler = value;
                 this._templateView._addEventListener(node, eventName, handler);
-            } else if (isFn) {
+            } else if (typeof value === "function") {
                 this._addAttributeBinding(node, key, value);
             } else {
                 setAttribute(node, key, value);
@@ -319,8 +329,9 @@ class TemplateBuilder<T extends IObservableValue> {
                 }
             }
             const view = viewCreator(mapFn(this._value));
-            if (view) {
-                return this.view(view);
+            const mountedView = view && this.view(view); // Mount can fail, but it's cleaner to catch it here.
+            if (mountedView) {
+                return mountedView;
             } else {
                 return document.createComment("node binding placeholder");
             }
