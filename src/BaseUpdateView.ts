@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 export interface IObservableValue {
-    on?(event: "change", handler: (props: string[]) => void): void;
-    off?(event: "change", handler: (props: string[]) => void): void;
+    on?(event: "change", handler: (props?: string[]) => void): void;
+    off?(event: "change", handler: (props?: string[]) => void): void;
 }
 
 export interface IMountOptions {
@@ -27,9 +27,9 @@ export type MountElement = Element | Comment
 
 export abstract class BaseUpdateView<T extends IObservableValue> {
     protected _value: T
-    protected _boundUpdateFromValue: ((props: string[]) => void) | null
+    protected _boundUpdateFromValue: ((props?: string[]) => void) | null
 
-    abstract update(value: T, props: string[]): void;
+    abstract update(value: T, props?: string[]): void;
     abstract root(): MountElement | null;
 
     constructor(value :T) {
@@ -54,13 +54,13 @@ export abstract class BaseUpdateView<T extends IObservableValue> {
         return this._value;
     }
 
-    _updateFromValue(changedProps: string[]) {
+    _updateFromValue(changedProps?: string[]) {
         this.update(this._value, changedProps);
     }
 
     _subscribe(): void {
         if (typeof this._value?.on === "function") {
-            this._boundUpdateFromValue = this._updateFromValue.bind(this) as (props: string[]) => void;
+            this._boundUpdateFromValue = this._updateFromValue.bind(this) as (props?: string[]) => void;
             this._value.on("change", this._boundUpdateFromValue);
         }
     }
