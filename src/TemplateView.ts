@@ -27,7 +27,9 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
     return false;
 }
 
-export type RenderFn<T> = (t: TemplateBuilder<T>, vm: T) => MountElement;
+export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element }
+
+export type RenderFn<T> = (t: Builder<T>, vm: T) => MountElement;
 export type AttrValue<T> = boolean | string | ((value: T) => string | boolean) | ((event: Event) => void) | ClassNames<T>
 export type Attributes<T> = { [attribute: string]: AttrValue<T> }
 
@@ -80,7 +82,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
     // Note: mount can fail with no exception outwardly visible.
     // Thus, this function is nullable, and should be treated as such.
     mount(options?: IMountOptions): MountElement | null {
-        const builder = new TemplateBuilder(this);
+        const builder = new TemplateBuilder(this) as Builder<T>;
         try {
             if (this._render) {
                 this._root = this._render(builder, this._value);
@@ -341,7 +343,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: TemplateBuilder<T>, vm: T) => MountElement): MountElement {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => MountElement): MountElement {
         return this.mapView(mapFn, mappedValue => {
             return new TemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -364,7 +366,7 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     // creates a conditional subtemplate
     // use mapView if you need to map to a different view class
-    if(predicate: (value: T) => boolean, renderFn: (t: TemplateBuilder<T>, vm: T) => MountElement) {
+    if(predicate: (value: T) => boolean, renderFn: (t: Builder<T>, vm: T) => MountElement) {
         return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
     }
 

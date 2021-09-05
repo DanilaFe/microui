@@ -93,8 +93,8 @@ export function text(str: string): Text {
     return document.createTextNode(str);
 }
 
-export const HTML_NS = "http://www.w3.org/1999/xhtml";
-export const SVG_NS = "http://www.w3.org/2000/svg";
+export const HTML_NS: string = "http://www.w3.org/1999/xhtml";
+export const SVG_NS: string = "http://www.w3.org/2000/svg";
 
 export const TAG_NAMES = {
     [HTML_NS]: [
@@ -103,10 +103,9 @@ export const TAG_NAMES = {
         "table", "thead", "tbody", "tr", "th", "td", "hr",
         "pre", "code", "button", "time", "input", "textarea", "label", "form", "progress", "output", "video"],
     [SVG_NS]: ["svg", "circle"]
-};
+} as const;
 
-export const tag: { [tagName: string]: (attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]) => Element } = {};
-
+export const tag: { [tagName in typeof TAG_NAMES[string][number]]: (attributes?: BasicAttributes<never> | Child | Child[], children?: Child | Child[]) => Element } = {} as any;
 
 for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     for (const tagName of tags) {
