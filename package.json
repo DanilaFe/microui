@@ -7,6 +7,9 @@
   "author": "Matrix.org",
   "license": "Apache-2.0",
   "private": false,
+  "scripts": {
+    "prepare": "tsc",
+  },
   "devDependencies": {
     "typescript": "^4.4.2"
   }
