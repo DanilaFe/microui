@@ -4,11 +4,12 @@
   "description": "Bruno Windels' pure JavaScript UI library.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "author": "Matrix.org",
+  "author": "Bruno Windels",
   "license": "Apache-2.0",
   "private": false,
   "scripts": {
-    "prepare": "tsc"
+    "prepare": "tsc",
+    "build": "tsc"
   },
   "devDependencies": {
     "typescript": "^4.4.2"
