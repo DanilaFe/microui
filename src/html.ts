@@ -25,7 +25,7 @@ export function isChildren(children: object | Child | Child[]): children is Chil
     return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 
-export function classNames<T>(obj: ClassNames<T>, value?: T): string{
+export function classNames<T>(obj: ClassNames<T>, value?: T): string {
     return Object.entries(obj).reduce((cn, [name, enabled]) => {
         if (typeof enabled === "function") {
             enabled = enabled(value);
