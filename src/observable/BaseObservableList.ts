@@ -19,7 +19,7 @@ import {BaseObservable} from "./BaseObservable";
 interface IObservableListHandler<T> {
     onReset(list: BaseObservableList<T>): void;
     onAdd(index: number, value: T, list: BaseObservableList<T>): void;
-    onUpdate(index: number, value: T, params: any[], list: BaseObservableList<T>): void;
+    onUpdate(index: number, value: T, params: any[] | null, list: BaseObservableList<T>): void;
     onRemove(index: number, value: T, list: BaseObservableList<T>): void;
     onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void;
 }
@@ -32,19 +32,19 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
-    emitAdd(index: number, value: T): void {
+    protected emitAdd(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onAdd(index, value, this);
         }
     }
 
-    emitUpdate(index: number, value: T, params: any[]): void {
+    protected emitUpdate(index: number, value: T, params: any[] | null): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }
     }
 
-    emitRemove(index: number, value: T): void {
+    protected emitRemove(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onRemove(index, value, this);
         }
@@ -52,7 +52,7 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
 
     // toIdx assumes the item has already
     // been removed from its fromIdx
-    emitMove(fromIdx: number, toIdx: number, value: T): void {
+    protected emitMove(fromIdx: number, toIdx: number, value: T): void {
         for(let h of this._handlers) {
             h.onMove(fromIdx, toIdx, value, this);
         }

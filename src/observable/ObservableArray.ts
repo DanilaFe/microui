@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,56 +17,58 @@ limitations under the License.
 
 import {BaseObservableList} from "./BaseObservableList.js";
 
-export class ObservableArray extends BaseObservableList {
+export class ObservableArray<T> extends BaseObservableList<T> {
+    private _items: T[];
+
     constructor(initialValues = []) {
         super();
         this._items = initialValues;
     }
 
-    append(item) {
+    append(item: T): void {
         this._items.push(item);
         this.emitAdd(this._items.length - 1, item);
     }
 
-    remove(idx) {
+    remove(idx: number): void {
         const [item] = this._items.splice(idx, 1);
         this.emitRemove(idx, item);
     }
 
-    insertMany(idx, items) {
+    insertMany(idx: number, items: T[]): void {
         for(let item of items) {
             this.insert(idx, item);
             idx += 1;
         }
     }
 
-    insert(idx, item) {
+    insert(idx: number, item:T ): void {
         this._items.splice(idx, 0, item);
         this.emitAdd(idx, item);
     }
 
-    update(idx, item, params = null) {
+    update(idx: number, item: T, params: any[] | null = null): void {
         if (idx < this._items.length) {
             this._items[idx] = item;
             this.emitUpdate(idx, item, params);
         }
     }
 
-    get array() {
+    get array(): T[] {
         return this._items;
     }
 
-    at(idx) {
+    at(idx: number): T | undefined {
         if (this._items && idx >= 0 && idx < this._items.length) {
             return this._items[idx];
         }
     }
 
-    get length() {
+    override get length(): number {
         return this._items.length;
     }
 
-    [Symbol.iterator]() {
+    override [Symbol.iterator]() {
         return this._items.values();
     }
 }
