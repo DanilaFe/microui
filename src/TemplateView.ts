@@ -97,7 +97,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         // takes care of update being called when needed
         super.mount(options);
         this._attach();
-        return this._root;
+        return this._root!;
     }
 
     unmount(): void {
