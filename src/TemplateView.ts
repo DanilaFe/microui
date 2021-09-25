@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html.js";
-import {mountView} from "./utils.js";
-import {BaseUpdateView, IObservableValue, IMountOptions, MountElement} from "./BaseUpdateView.js";
+import { setAttribute, text, isChildren, classNames, TAG_NAMES, HTML_NS, ClassNames, Child} from "./html";
+import {mountView} from "./utils";
+import {BaseUpdateView, IObservableValue} from "./BaseUpdateView";
+import {IMountArgs, ViewNode, IView} from "./types";
 
 function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: boolean } {
     for(const value of Object.values(obj)) {
@@ -27,11 +29,15 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
     return false;
 }
 
-export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element }
 
-export type RenderFn<T> = (t: Builder<T>, vm: T) => MountElement;
-export type AttrValue<T> = boolean | string | ((value: T) => string | boolean) | ((event: Event) => void) | ClassNames<T>
-export type Attributes<T> = { [attribute: string]: AttrValue<T> }
+export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
+type EventHandler = ((event: Event) => void);
+type AttributeStaticValue = string | boolean;
+type AttributeBinding<T> = (value: T) => AttributeStaticValue;
+export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
+export type Attributes<T> = { [attribute: string]: AttrValue<T> };
+type ElementFn<T> = (attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]) => Element;
+export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
 
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -47,20 +53,17 @@ export type Attributes<T> = { [attribute: string]: AttrValue<T> }
 */
 // TODO: should we rename this to BoundView or something? As opposed to StaticView ...
 export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> {
-    private _render: RenderFn<T> | null;
-    private _eventListeners: { node: Element, name: string, fn: (event: Event) => void, useCapture: boolean }[] | null;
-    private _bindings: (() => void)[] | null
-    private _root: MountElement | null;
-    _subViews: BaseUpdateView<IObservableValue>[] | null;
+    private _render?: RenderFn<T>;
+    private _eventListeners?: { node: Element, name: string, fn: EventHandler, useCapture: boolean }[] = undefined;
+    private _bindings?: (() => void)[] = undefined;
+    private _root?: ViewNode = undefined;
+    // public because used by TemplateBuilder
+    _subViews?: IView[] = undefined;
 
-    constructor(value: T, render: RenderFn<T> | null = null) {
+    constructor(value: T, render?: RenderFn<T>) {
         super(value);
         // TODO: can avoid this if we have a separate class for inline templates vs class template views
         this._render = render;
-        this._eventListeners = null;
-        this._bindings = null;
-        this._subViews = null;
-        this._root = null;
     }
 
     _attach(): void {
@@ -79,9 +82,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         }
     }
 
-    // Note: mount can fail with no exception outwardly visible.
-    // Thus, this function is nullable, and should be treated as such.
-    mount(options?: IMountOptions): MountElement | null {
+    mount(options?: IMountArgs): ViewNode {
         const builder = new TemplateBuilder(this) as Builder<T>;
         try {
             if (this._render) {
@@ -95,7 +96,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
             builder.close();
         }
         // takes care of update being called when needed
-        super.mount(options);
+        this.subscribeOnMount(options);
         this._attach();
         return this._root!;
     }
@@ -110,7 +111,7 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         }
     }
 
-    root(): MountElement | null {
+    root(): ViewNode | undefined {
         return this._root;
     }
 
@@ -137,14 +138,14 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
         this._bindings.push(bindingFn);
     }
 
-    addSubView(view: BaseUpdateView<IObservableValue>): void {
+    addSubView(view: IView): void {
         if (!this._subViews) {
             this._subViews = [];
         }
         this._subViews.push(view);
     }
 
-    removeSubView(view: BaseUpdateView<IObservableValue>): void {
+    removeSubView(view: IView): void {
         if (!this._subViews) { return; }
         const idx = this._subViews.indexOf(view);
         if (idx !== -1) {
@@ -164,11 +165,10 @@ export class TemplateView<T extends IObservableValue> extends BaseUpdateView<T> 
 // what is passed to render
 export class TemplateBuilder<T extends IObservableValue> {
     private _templateView: TemplateView<T>;
-    private _closed: boolean;
+    private _closed: boolean = false;
 
     constructor(templateView: TemplateView<T>) {
         this._templateView = templateView;
-        this._closed = false;
     }
 
     close(): void {
@@ -240,7 +240,7 @@ export class TemplateBuilder<T extends IObservableValue> {
                 if (objHasFns(value)) {
                     this._addClassNamesBinding(node, value);
                 } else {
-                    setAttribute(node, key, classNames(value));
+                    setAttribute(node, key, classNames(value, this._value));
                 }
             } else if (this._isEventHandler(key, value)) {
                 const eventName = key.substr(2, 1).toLowerCase() + key.substr(3);
@@ -269,7 +269,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         }
     }
     
-    _addReplaceNodeBinding<R>(fn: (value: T) => R, renderNode: (old: MountElement | null) => MountElement): MountElement {
+    _addReplaceNodeBinding<R>(fn: (value: T) => R, renderNode: (old: ViewNode | null) => ViewNode): ViewNode {
         let prevValue = fn(this._value);
         let node = renderNode(null);
 
@@ -288,11 +288,11 @@ export class TemplateBuilder<T extends IObservableValue> {
         return node;
     }
 
-    el(name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): MountElement {
+    el(name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
         return this.elNS(HTML_NS, name, attributes, children);
     }
 
-    elNS(ns: string, name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): MountElement {
+    elNS(ns: string, name: string, attributes?: Attributes<T> | Child | Child[], children?: Child | Child[]): ViewNode {
         if (attributes !== undefined && isChildren(attributes)) {
             children = attributes;
             attributes = undefined;
@@ -312,13 +312,13 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     // this inserts a view, and is not a view factory for `if`, so returns the root element to insert in the template
     // you should not call t.view() and not use the result (e.g. attach the result to the template DOM tree).
-    view(view: BaseUpdateView<IObservableValue>, mountOptions: IMountOptions | undefined = undefined): MountElement | null {
+    view(view: IView, mountOptions?: IMountArgs): ViewNode {
         this._templateView.addSubView(view);
         return mountView(view, mountOptions);
     }
 
     // map a value to a view, every time the value changes
-    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => BaseUpdateView<IObservableValue> | null): MountElement {
+    mapView<R>(mapFn: (value: T) => R, viewCreator: (mapped: R) => IView | null): ViewNode {
         return this._addReplaceNodeBinding(mapFn, (prevNode) => {
             if (prevNode && prevNode.nodeType !== Node.COMMENT_NODE) {
                 const subViews = this._templateView._subViews;
@@ -331,9 +331,8 @@ export class TemplateBuilder<T extends IObservableValue> {
                 }
             }
             const view = viewCreator(mapFn(this._value));
-            const mountedView = view && this.view(view); // Mount can fail, but it's cleaner to catch it here.
-            if (mountedView) {
-                return mountedView;
+            if (view) {
+                return this.view(view);
             } else {
                 return document.createComment("node binding placeholder");
             }
@@ -343,7 +342,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => MountElement): MountElement {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new TemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -357,7 +356,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         });
     }
 
-    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => TemplateView<IObservableValue>): MountElement {
+    ifView(predicate: (value: T) => boolean, viewCreator: (value: T) => IView): ViewNode {
         return this.mapView(
             value => !!predicate(value),
             enabled => enabled ? viewCreator(this._value) : null
@@ -366,7 +365,7 @@ export class TemplateBuilder<T extends IObservableValue> {
 
     // creates a conditional subtemplate
     // use mapView if you need to map to a different view class
-    if(predicate: (value: T) => boolean, renderFn: (t: Builder<T>, vm: T) => MountElement) {
+    if(predicate: (value: T) => boolean, renderFn: (t: Builder<T>, vm: T) => ViewNode) {
         return this.ifView(predicate, vm => new TemplateView(vm, renderFn));
     }
 
@@ -376,7 +375,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     This should only be used if the side-effect won't add any bindings,
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
-    instead use tags from html.js to help you construct any DOM you need. */
+    instead use tags from html.ts to help you construct any DOM you need. */
     mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {

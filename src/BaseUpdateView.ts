@@ -1,5 +1,6 @@
 /*
 Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,23 +15,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IMountArgs, ViewNode, IView} from "./types";
+
 export interface IObservableValue {
     on?(event: "change", handler: (props?: string[]) => void): void;
     off?(event: "change", handler: (props?: string[]) => void): void;
 }
 
-export interface IMountOptions {
-    parentProvidesUpdates?: boolean
-}
-
-export type MountElement = Element | Comment
-
-export abstract class BaseUpdateView<T extends IObservableValue> {
+export abstract class BaseUpdateView<T extends IObservableValue> implements IView {
     protected _value: T
     protected _boundUpdateFromValue: ((props?: string[]) => void) | null
 
-    abstract update(value: T, props?: string[]): void;
-    abstract root(): MountElement | null;
+    abstract mount(args?: IMountArgs): ViewNode;
+    abstract root(): ViewNode | undefined;
+    abstract update(...any: any[]): any;
 
     constructor(value :T) {
         this._value = value;
@@ -38,12 +36,11 @@ export abstract class BaseUpdateView<T extends IObservableValue> {
         this._boundUpdateFromValue = null;
     }
 
-    mount(options?: IMountOptions): MountElement | null {
+    subscribeOnMount(options?: IMountArgs): void {
         const parentProvidesUpdates = options && options.parentProvidesUpdates;
         if (!parentProvidesUpdates) {
             this._subscribe();
         }
-        return null;
     }
 
     unmount(): void {

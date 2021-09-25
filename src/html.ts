@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,16 +17,18 @@ limitations under the License.
 
 // DOM helper functions
 
-export type ClassNames<T> = { [className: string]: boolean | ((value?: T) => boolean) }
+import {ViewNode} from "./types";
+
+export type ClassNames<T> = { [className: string]: boolean | ((value: T) => boolean) }
 export type BasicAttributes<T> = { [attribute: string]: ClassNames<T> | boolean | string }
-export type Child = string | Text | Element | Comment
+export type Child = string | Text | ViewNode;
 
 export function isChildren(children: object | Child | Child[]): children is Child | Child[] {
     // children should be an not-object (that's the attributes), or a domnode, or an array
     return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 
-export function classNames<T>(obj: ClassNames<T>, value?: T): string{
+export function classNames<T>(obj: ClassNames<T>, value: T): string {
     return Object.entries(obj).reduce((cn, [name, enabled]) => {
         if (typeof enabled === "function") {
             enabled = enabled(value);
@@ -69,7 +72,7 @@ export function elNS(ns: string, elementName: string, attributes?: BasicAttribut
             if (typeof value === "object") {
                 // Only className should ever be an object; be careful
                 // here anyway and ignore object-valued non-className attributes.
-                value = (value !== null && name === "className") ? classNames(value) : false;
+                value = (value !== null && name === "className") ? classNames(value, undefined) : false;
             }
             setAttribute(e, name, value);
         }
