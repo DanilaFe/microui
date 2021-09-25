@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 export class BaseObservable<T> {
-    private _handlers: Set<T>;
+    protected _handlers: Set<T>;
 
     constructor() {
         this._handlers = new Set();
