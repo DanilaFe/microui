@@ -9,9 +9,11 @@
   "private": false,
   "scripts": {
     "prepare": "tsc",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "impunity --entry-point src/index.ts --force-esm-dirs src/"
   },
   "devDependencies": {
+    "impunity": "^1.0.1",
     "typescript": "^4.4.2"
   }
 }
