@@ -47,11 +47,11 @@ export class SortedArray<T> extends BaseObservableList<T> {
         }
     }
 
-    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any[] | false): boolean {
+    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any | false): boolean {
         return findAndUpdateInArray(predicate, this._items, this, updater);
     }
 
-    getAndUpdate(item: T, updater: (existing: T, item: T) => T, updateParams: any[] | null = null) {
+    getAndUpdate(item: T, updater: (existing: T, item: T) => T, updateParams: any | false = false) {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             const existingItem = this._items[idx];
@@ -61,7 +61,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         }
     }
 
-    update(item: T, updateParams: any[] | null = null): void {
+    update(item: T, updateParams: any | false = false): void {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             this._items[idx] = item;
@@ -86,7 +86,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return this.get(idx);
     }
 
-    set(item: T, updateParams: any[] | null = null): void {
+    set(item: T, updateParams: any | false = false): void {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
             this._items.splice(idx, 0, item);

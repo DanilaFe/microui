@@ -16,10 +16,10 @@ limitations under the License.
 
 import {BaseObservable} from "./BaseObservable";
 
-interface IObservableListHandler<T> {
+export interface IObservableListHandler<T> {
     onReset(list: BaseObservableList<T>): void;
     onAdd(index: number, value: T, list: BaseObservableList<T>): void;
-    onUpdate(index: number, value: T, params: any[] | null, list: BaseObservableList<T>): void;
+    onUpdate(index: number, value: T, params: any | false, list: BaseObservableList<T>): void;
     onRemove(index: number, value: T, list: BaseObservableList<T>): void;
     onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void;
 }
@@ -38,7 +38,7 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
         }
     }
 
-    emitUpdate(index: number, value: T, params: any[] | null): void {
+    emitUpdate(index: number, value: T, params: any | false = false): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }

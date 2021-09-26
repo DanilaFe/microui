@@ -20,7 +20,7 @@ import {BaseObservableList} from "./BaseObservableList.js";
 export class ObservableArray<T> extends BaseObservableList<T> {
     private _items: T[];
 
-    constructor(initialValues = []) {
+    constructor(initialValues: T[] = []) {
         super();
         this._items = initialValues;
     }
@@ -47,7 +47,7 @@ export class ObservableArray<T> extends BaseObservableList<T> {
         this.emitAdd(idx, item);
     }
 
-    update(idx: number, item: T, params: any[] | null = null): void {
+    update(idx: number, item: T, params: any | false = false): void {
         if (idx < this._items.length) {
             this._items[idx] = item;
             this.emitUpdate(idx, item, params);
