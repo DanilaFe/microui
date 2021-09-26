@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList";
 
 export class ConcatList<T> extends BaseObservableList<T> {
     private _sourceLists: BaseObservableList<T>[]
@@ -107,7 +107,7 @@ export class ConcatList<T> extends BaseObservableList<T> {
     }
 }
 
-import {ObservableArray} from "./ObservableArray.js";
+import {ObservableArray} from "./ObservableArray";
 import {IObservableListHandler} from "./BaseObservableList"
 export async function tests() {
     return {

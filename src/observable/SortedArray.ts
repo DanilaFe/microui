@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList.js";
+import {BaseObservableList} from "./BaseObservableList";
 import {sortedIndex, findAndUpdateInArray} from "./common";
 
 type Comparator<T> = (left: T, right: T) => number;
