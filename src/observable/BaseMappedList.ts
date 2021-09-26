@@ -42,11 +42,11 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
     }
 
     override get length(): number {
-        return this._mappedValues?.length || -1;
+        return this._mappedValues!.length;
     }
 
     override [Symbol.iterator]() {
-        return this._mappedValues?.values() || { done: true };
+        return this._mappedValues!.values();
     }
 }
 
