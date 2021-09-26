@@ -17,13 +17,11 @@ limitations under the License.
 
 import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList.js";
 
-export class AsyncMappedList extends BaseMappedList {
-    constructor(sourceList, mapper, updater, removeCallback) {
-        super(sourceList, mapper, updater, removeCallback);
-        this._eventQueue = null;
-    }
+export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> {
+    private _eventQueue: AsyncEvent<F>[] | null = null
+    private _flushing: boolean = false
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
         this._eventQueue = [];
         this._mappedValues = [];
@@ -35,14 +33,14 @@ export class AsyncMappedList extends BaseMappedList {
         this._flush();
     }
 
-    async _flush() {
+    async _flush(): Promise<void> {
         if (this._flushing) {
             return;
         }
         this._flushing = true;
         try {
-            while (this._eventQueue.length) {
-                const event = this._eventQueue.shift();
+            while (this._eventQueue!.length) {
+                const event = this._eventQueue!.shift()!;
                 await event.run(this);
             }
         } finally {
@@ -50,99 +48,90 @@ export class AsyncMappedList extends BaseMappedList {
         }
     }
 
-    onReset() {
+    onReset(): void {
         if (this._eventQueue) {
             this._eventQueue.push(new ResetEvent());
             this._flush();
         }
     }
 
-    onAdd(index, value) {
+    onAdd(index: number, value: F): void {
         if (this._eventQueue) {
             this._eventQueue.push(new AddEvent(index, value));
             this._flush();
         }
     }
 
-    onUpdate(index, value, params) {
+    onUpdate(index: number, value: F, params: any | false): void {
         if (this._eventQueue) {
             this._eventQueue.push(new UpdateEvent(index, value, params));
             this._flush();
         }
     }
 
-    onRemove(index) {
+    onRemove(index: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new RemoveEvent(index));
             this._flush();
         }
     }
 
-    onMove(fromIdx, toIdx) {
+    onMove(fromIdx: number, toIdx: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new MoveEvent(fromIdx, toIdx));
             this._flush();
         }
     }
 
-    onUnsubscribeLast() {
-        this._sourceUnsubscribe();
+    onUnsubscribeLast(): void {
+        this._sourceUnsubscribe!();
         this._eventQueue = null;
         this._mappedValues = null;
     }
 }
 
-class AddEvent {
-    constructor(index, value) {
-        this.index = index;
-        this.value = value;
-    }
+type AsyncEvent<F> = AddEvent<F> | UpdateEvent<F> | RemoveEvent<F> | MoveEvent<F> | ResetEvent<F>
 
-    async run(list) {
+class AddEvent<F> {
+    constructor(public index: number, public value: F) {}
+
+    async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         const mappedValue = await list._mapper(this.value);
         runAdd(list, this.index, mappedValue);
     }
 }
 
-class UpdateEvent {
-    constructor(index, value, params) {
-        this.index = index;
-        this.value = value;
-        this.params = params;
-    }
+class UpdateEvent<F> {
+    constructor(public index: number, public value: F, public params: any | false) {}
 
-    async run(list) {
+    async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         runUpdate(list, this.index, this.value, this.params);
     }
 }
 
-class RemoveEvent {
-    constructor(index) {
-        this.index = index;
-    }
+class RemoveEvent<F> {
+    constructor(public index: number) {}
 
-    async run(list) {
+    async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         runRemove(list, this.index);
     }
 }
 
-class MoveEvent {
-    constructor(fromIdx, toIdx) {
-        this.fromIdx = fromIdx;
-        this.toIdx = toIdx;
-    }
+class MoveEvent<F> {
+    constructor(public fromIdx: number, public toIdx: number) {}
 
-    async run(list) {
+    async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         runMove(list, this.fromIdx, this.toIdx);
     }
 }
 
-class ResetEvent {
-    async run(list) {
+class ResetEvent<F> {
+    async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         runReset(list);
     }
 }
 
+/*
 import {ObservableArray} from "./ObservableArray.js";
 import {ListObserver} from "../../mocks/ListObserver.js";
 
@@ -195,3 +184,4 @@ export function tests() {
         }
     }
 }
+*/
