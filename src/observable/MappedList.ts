@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList.js";
+import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
 
 export class MappedList<F,T> extends BaseMappedList<F,T> {
     onSubscribeFirst() {
@@ -56,8 +56,8 @@ export class MappedList<F,T> extends BaseMappedList<F,T> {
     }
 }
 
-import {ObservableArray} from "./ObservableArray.js";
-import {BaseObservableList, IObservableListHandler} from "./BaseObservableList.js";
+import {ObservableArray} from "./ObservableArray";
+import {BaseObservableList, IObservableListHandler} from "./BaseObservableList";
 
 export async function tests() {
     class MockList extends BaseObservableList<number> {

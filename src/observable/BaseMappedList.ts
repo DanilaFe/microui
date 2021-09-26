@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList.js";
-import {findAndUpdateInArray} from "./common.js";
+import {BaseObservableList} from "./BaseObservableList";
+import {findAndUpdateInArray} from "./common";
 
 type Mapper<F,T> = (value: F) => T;
 type Updater<F,T> = (mappedValue: T, params: any | false, value: F) => void;
