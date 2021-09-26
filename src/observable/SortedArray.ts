@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 Daniel Fedorin <danila.fedorin@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,21 +16,25 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "./BaseObservableList.js";
-import {sortedIndex} from "../../utils/sortedIndex.js";
-import {findAndUpdateInArray} from "./common.js";
+import {sortedIndex, findAndUpdateInArray} from "./common";
 
-export class SortedArray extends BaseObservableList {
-    constructor(comparator) {
+type Comparator<T> = (left: T, right: T) => number;
+
+export class SortedArray<T> extends BaseObservableList<T> {
+    private _items: T[]
+    private _comparator: Comparator<T>
+
+    constructor(comparator: Comparator<T>) {
         super();
         this._comparator = comparator;
         this._items = [];
     }
 
-    setManyUnsorted(items) {
+    setManyUnsorted(items: T[]): void {
         this.setManySorted(items);
     }
 
-    setManySorted(items) {
+    setManySorted(items: T[]): void {
         // TODO: we can make this way faster by only looking up the first and last key,
         // and merging whatever is inbetween with items
         // if items is not sorted, 💩🌀 will follow!
@@ -42,11 +47,11 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    findAndUpdate(predicate, updater) {
+    findAndUpdate(predicate: (value: T) => boolean, updater: (value: T) => any[] | false): boolean {
         return findAndUpdateInArray(predicate, this._items, this, updater);
     }
 
-    getAndUpdate(item, updater, updateParams = null) {
+    getAndUpdate(item: T, updater: (existing: T, item: T) => T, updateParams: any[] | null = null) {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             const existingItem = this._items[idx];
@@ -56,7 +61,7 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    update(item, updateParams = null) {
+    update(item: T, updateParams: any[] | null = null): void {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             this._items[idx] = item;
@@ -64,7 +69,7 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    indexOf(item) {
+    indexOf(item: T): number {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx < this._items.length && this._comparator(this._items[idx], item) === 0) {
             return idx;
@@ -73,7 +78,7 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    _getNext(item) {
+    _getNext(item: T): T | null {
         let idx = sortedIndex(this._items, item, this._comparator);
         while(idx < this._items.length && this._comparator(this._items[idx], item) <= 0) {
             idx += 1;
@@ -81,7 +86,7 @@ export class SortedArray extends BaseObservableList {
         return this.get(idx);
     }
 
-    set(item, updateParams = null) {
+    set(item: T, updateParams: any[] | null = null): void {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
             this._items.splice(idx, 0, item);
@@ -92,32 +97,35 @@ export class SortedArray extends BaseObservableList {
         }
     }
 
-    get(idx) {
-        return this._items[idx];
+    get(idx: number): T | null {
+        return this._items[idx] || null;
     }
 
-    remove(idx) {
+    remove(idx: number): void {
         const item = this._items[idx];
         this._items.splice(idx, 1);
         this.emitRemove(idx, item);
     }
 
-    get array() {
+    get array(): T[] {
         return this._items;
     }
 
-    get length() {
+    override get length(): number {
         return this._items.length;
     }
 
-    [Symbol.iterator]() {
+    override [Symbol.iterator]() {
         return new Iterator(this);
     }
 }
 
 // iterator that works even if the current value is removed while iterating
-class Iterator {
-    constructor(sortedArray) {
+class Iterator<T> {
+    private _sortedArray: SortedArray<T> | null
+    private _current: T | null = null;
+
+    constructor(sortedArray: SortedArray<T>) {
         this._sortedArray = sortedArray;
         this._current = null;
     }
@@ -145,7 +153,7 @@ class Iterator {
 export function tests() {
     return {
         "setManyUnsorted": assert => {
-            const sa = new SortedArray((a, b) => a.localeCompare(b));
+            const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "c"]);
             assert.equal(sa.length, 3);
             assert.equal(sa.get(0), "a");
@@ -153,7 +161,7 @@ export function tests() {
             assert.equal(sa.get(2), "c");
         }, 
         "_getNext": assert => {
-            const sa = new SortedArray((a, b) => a.localeCompare(b));
+            const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "f"]);
             assert.equal(sa._getNext("a"), "b");
             assert.equal(sa._getNext("b"), "f");
@@ -162,7 +170,7 @@ export function tests() {
             assert.equal(sa._getNext("f"), undefined);
         },
         "iterator with removals": assert => {
-            const queue = new SortedArray((a, b) => a.idx - b.idx);
+            const queue = new SortedArray<{ idx: number }>((a, b) => a.idx - b.idx);
             queue.setManyUnsorted([{idx: 5}, {idx: 3}, {idx: 1}, {idx: 4}, {idx: 2}]);
             const it = queue[Symbol.iterator]();
             assert.equal(it.next().value.idx, 1);
