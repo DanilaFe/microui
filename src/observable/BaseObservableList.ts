@@ -32,19 +32,19 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
     }
     // we need batch events, mostly on index based collection though?
     // maybe we should get started without?
-    protected emitAdd(index: number, value: T): void {
+    emitAdd(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onAdd(index, value, this);
         }
     }
 
-    protected emitUpdate(index: number, value: T, params: any[] | null): void {
+    emitUpdate(index: number, value: T, params: any[] | null): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }
     }
 
-    protected emitRemove(index: number, value: T): void {
+    emitRemove(index: number, value: T): void {
         for(let h of this._handlers) {
             h.onRemove(index, value, this);
         }
@@ -52,7 +52,7 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
 
     // toIdx assumes the item has already
     // been removed from its fromIdx
-    protected emitMove(fromIdx: number, toIdx: number, value: T): void {
+    emitMove(fromIdx: number, toIdx: number, value: T): void {
         for(let h of this._handlers) {
             h.onMove(fromIdx, toIdx, value, this);
         }
