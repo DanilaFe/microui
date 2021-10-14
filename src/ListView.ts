@@ -16,7 +16,8 @@ limitations under the License.
 
 import {el} from "./html";
 import {mountView, insertAt} from "./utils";
-import {BaseObservableList as ObservableList} from "./observable/list/BaseObservableList.js";
+import {SubscriptionHandle} from "./observable/BaseObservable";
+import {BaseObservableList as ObservableList} from "./observable/list/BaseObservableList";
 import {IView, IMountArgs} from "./types";
 
 interface IOptions<T, V> {
@@ -26,8 +27,6 @@ interface IOptions<T, V> {
     tagName?: string,
     parentProvidesUpdates?: boolean
 }
-
-type SubscriptionHandle = () => void;
 
 export class ListView<T, V extends IView> implements IView {
 
@@ -115,8 +114,7 @@ export class ListView<T, V extends IView> implements IView {
     }
 
     private _unloadList() {
-        this._subscription!()
-        this._subscription = undefined;
+        this._subscription = this._subscription!();
         for (let child of this._childInstances!) {
             child.unmount();
         }
@@ -136,6 +134,14 @@ export class ListView<T, V extends IView> implements IView {
             fragment.appendChild(mountView(child, this._mountArgs));
         }
         this._root!.appendChild(fragment);
+    }
+
+    onReset() {
+        for (const child of this._childInstances!) {
+            child.root()!.remove();
+            child.unmount();
+        }
+        this._childInstances!.length = 0;
     }
 
     onAdd(idx: number, value: T) {
@@ -162,10 +168,6 @@ export class ListView<T, V extends IView> implements IView {
             const instance = this._childInstances![i];
             instance && instance.update(value, params);
         }
-    }
-
-    onReset() {
-
     }
 
     protected recreateItem(index: number, value: T) {

@@ -14,22 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class BaseObservable<T> {
-    protected _handlers: Set<T>;
+// we return undefined so you can reassign any member
+// that uses `member?: T` syntax in one statement.
+export type SubscriptionHandle = () => undefined;
 
-    constructor() {
-        this._handlers = new Set();
-    }
+export abstract class BaseObservable<T> {
+    protected _handlers: Set<T> = new Set<T>();
 
-    onSubscribeFirst() {
-
-    }
-
-    onUnsubscribeLast() {
+    onSubscribeFirst(): void {
 
     }
 
-    subscribe(handler: T): () => void {
+    onUnsubscribeLast(): void {
+
+    }
+
+    subscribe(handler: T): SubscriptionHandle {
         this._handlers.add(handler);
         if (this._handlers.size === 1) {
             this.onSubscribeFirst();
@@ -39,14 +39,14 @@ export class BaseObservable<T> {
         };
     }
 
-    unsubscribe(handler: T | null): void {
+    unsubscribe(handler?: T): undefined {
         if (handler) {
             this._handlers.delete(handler);
             if (this._handlers.size === 0) {
                 this.onUnsubscribeLast();
             }
-            handler = null;
         }
+        return undefined;
     }
 
     unsubscribeAll(): void {
@@ -65,13 +65,10 @@ export class BaseObservable<T> {
 
 export function tests() {
     class Collection extends BaseObservable<{}> {
-        firstSubscribeCalls = 0;
-        firstUnsubscribeCalls = 0;
+        firstSubscribeCalls: number = 0;
+        firstUnsubscribeCalls: number = 0;
 
-        constructor() {
-            super();
-        }
-        onSubscribeFirst() {  this.firstSubscribeCalls += 1; }
+        onSubscribeFirst() { this.firstSubscribeCalls += 1; }
         onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
     }
 

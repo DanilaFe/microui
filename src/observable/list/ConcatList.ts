@@ -14,16 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableList} from "./BaseObservableList";
+import {BaseObservableList, IListObserver} from "./BaseObservableList";
 
-export class ConcatList<T> extends BaseObservableList<T> {
-    private _sourceLists: BaseObservableList<T>[]
-    private _sourceUnsubscribes: (() => void)[] | null
+export class ConcatList<T> extends BaseObservableList<T> implements IListObserver<T> {
+    protected _sourceLists: BaseObservableList<T>[];
+    protected _sourceUnsubscribes: (() => void)[] | null = null;
 
     constructor(...sourceLists: BaseObservableList<T>[]) {
         super();
         this._sourceLists = sourceLists;
-        this._sourceUnsubscribes = null;
     }
 
     _offsetForSource(sourceList: BaseObservableList<T>): number {
@@ -61,7 +60,7 @@ export class ConcatList<T> extends BaseObservableList<T> {
         this.emitAdd(this._offsetForSource(sourceList) + index, value);
     }
 
-    onUpdate(index: number, value: T, params: any | false, sourceList: BaseObservableList<T>): void {
+    onUpdate(index: number, value: T, params: any, sourceList: BaseObservableList<T>): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         // as we are not supposed to call `length` on any uninitialized list
         if (!this._sourceUnsubscribes) {
@@ -79,7 +78,7 @@ export class ConcatList<T> extends BaseObservableList<T> {
         this.emitMove(offset + fromIdx, offset + toIdx, value);
     }
 
-    override get length(): number {
+    get length(): number {
         let len = 0;
         for (let i = 0; i < this._sourceLists.length; ++i) {
             len += this._sourceLists[i].length;
@@ -87,7 +86,7 @@ export class ConcatList<T> extends BaseObservableList<T> {
         return len;
     }
 
-    override [Symbol.iterator]() {
+    [Symbol.iterator]() {
         let sourceListIdx = 0;
         let it = this._sourceLists[0][Symbol.iterator]();
         return {
@@ -108,7 +107,7 @@ export class ConcatList<T> extends BaseObservableList<T> {
 }
 
 import {ObservableArray} from "./ObservableArray";
-import {IObservableListHandler} from "./BaseObservableList"
+import {defaultObserverWith} from "./BaseObservableList";
 export async function tests() {
     return {
         test_length(assert) {
@@ -137,13 +136,13 @@ export async function tests() {
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);
             let fired = false;
-            all.subscribe({
-                onAdd(index: number, value: number) {
+            all.subscribe(defaultObserverWith({
+                onAdd(index, value) {
                     fired = true;
                     assert.equal(index, 4);
                     assert.equal(value, 11.5);
                 }
-            } as any as IObservableListHandler<number>);
+            }));
             list2.insert(1, 11.5);
             assert(fired);
         },
@@ -152,13 +151,13 @@ export async function tests() {
             const list2 = new ObservableArray([11, 12, 13]);
             const all = new ConcatList(list1, list2);
             let fired = false;
-            all.subscribe({
-                onUpdate(index: number, value: number) {
+            all.subscribe(defaultObserverWith({
+                onUpdate(index, value) {
                     fired = true;
                     assert.equal(index, 4);
                     assert.equal(value, 10);
                 }
-            } as any as IObservableListHandler<number>);
+            }));
             list2.emitUpdate(1, 10);
             assert(fired);
         },

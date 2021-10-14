@@ -15,11 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
+import {IListObserver} from "./BaseObservableList";
+import {BaseMappedList, Mapper, Updater, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
 
-export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> {
-    private _eventQueue: AsyncEvent<F>[] | null = null
-    private _flushing: boolean = false
+export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> implements IListObserver<F> {
+    private _eventQueue: AsyncEvent<F>[] | null = null;
+    private _flushing: boolean = false;
 
     onSubscribeFirst(): void {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
@@ -40,8 +41,8 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> {
         this._flushing = true;
         try {
             while (this._eventQueue!.length) {
-                const event = this._eventQueue!.shift()!;
-                await event.run(this);
+                const event = this._eventQueue!.shift();
+                await event!.run(this);
             }
         } finally {
             this._flushing = false;
@@ -62,7 +63,7 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> {
         }
     }
 
-    onUpdate(index: number, value: F, params: any | false): void {
+    onUpdate(index: number, value: F, params: any): void {
         if (this._eventQueue) {
             this._eventQueue.push(new UpdateEvent(index, value, params));
             this._flush();
@@ -102,7 +103,7 @@ class AddEvent<F> {
 }
 
 class UpdateEvent<F> {
-    constructor(public index: number, public value: F, public params: any | false) {}
+    constructor(public index: number, public value: F, public params: any) {}
 
     async run<T>(list: AsyncMappedList<F,T>): Promise<void> {
         runUpdate(list, this.index, this.value, this.params);
@@ -132,14 +133,16 @@ class ResetEvent<F> {
 }
 
 /*
-import {ObservableArray} from "./ObservableArray.js";
+Upstream (Hydrogen) has mock classes, which we will not translate for now.
+
+import {ObservableArray} from "./ObservableArray";
 import {ListObserver} from "../../mocks/ListObserver.js";
 
 export function tests() {
     return {
         "events are emitted in order": async assert => {
             const double = n => n * n;
-            const source = new ObservableArray();
+            const source = new ObservableArray<number>();
             const mapper = new AsyncMappedList(source, async n => {
                 await new Promise(r => setTimeout(r, n));
                 return {n: double(n)};

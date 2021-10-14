@@ -5,7 +5,7 @@ export {text, HTML_NS, SVG_NS, TAG_NAMES, tag} from "./html";
 export {ViewNode, IMountArgs, IView} from "./types";
 export {ListView} from "./ListView";
 export {BaseObservable} from "./observable/BaseObservable";
-export {BaseObservableList, IObservableListHandler} from "./observable/list/BaseObservableList";
+export {BaseObservableList, IListObserver} from "./observable/list/BaseObservableList";
 export {AsyncMappedList} from "./observable/list/AsyncMappedList";
 export {MappedList} from "./observable/list/MappedList";
 export {ConcatList} from "./observable/list/ConcatList";

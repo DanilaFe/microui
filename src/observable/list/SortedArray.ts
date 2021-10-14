@@ -15,18 +15,15 @@ limitations under the License.
 */
 
 import {BaseObservableList} from "./BaseObservableList";
-import {sortedIndex, findAndUpdateInArray} from "./common";
-
-type Comparator<T> = (left: T, right: T) => number;
+import {findAndUpdateInArray, sortedIndex} from "./common";
 
 export class SortedArray<T> extends BaseObservableList<T> {
-    private _items: T[]
-    private _comparator: Comparator<T>
+    private _comparator: (left: T, right: T) => number;
+    private _items: T[] = [];
 
-    constructor(comparator: Comparator<T>) {
+    constructor(comparator: (left: T, right: T) => number) {
         super();
         this._comparator = comparator;
-        this._items = [];
     }
 
     setManyUnsorted(items: T[]): void {
@@ -50,7 +47,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return findAndUpdateInArray(predicate, this._items, this, updater);
     }
 
-    getAndUpdate(item: T, updater: (existing: T, item: T) => T, updateParams: any | false = false) {
+    getAndUpdate(item: T, updater: (existing: T, item: T) => any, updateParams: any = null): void {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             const existingItem = this._items[idx];
@@ -60,7 +57,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         }
     }
 
-    update(item: T, updateParams: any | false = false): void {
+    update(item: T, updateParams: any = null): void {
         const idx = this.indexOf(item);
         if (idx !== -1) {
             this._items[idx] = item;
@@ -77,7 +74,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         }
     }
 
-    _getNext(item: T): T | null {
+    _getNext(item: T): T | undefined {
         let idx = sortedIndex(this._items, item, this._comparator);
         while(idx < this._items.length && this._comparator(this._items[idx], item) <= 0) {
             idx += 1;
@@ -85,7 +82,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return this.get(idx);
     }
 
-    set(item: T, updateParams: any | false = false): void {
+    set(item: T, updateParams: any = null): void {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
             this._items.splice(idx, 0, item);
@@ -96,8 +93,8 @@ export class SortedArray<T> extends BaseObservableList<T> {
         }
     }
 
-    get(idx: number): T | null {
-        return this._items[idx] || null;
+    get(idx: number): T | undefined {
+        return this._items[idx];
     }
 
     remove(idx: number): void {
@@ -110,11 +107,11 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return this._items;
     }
 
-    override get length(): number {
+    get length(): number {
         return this._items.length;
     }
 
-    override [Symbol.iterator]() {
+    [Symbol.iterator]() {
         return new Iterator(this);
     }
 }
@@ -122,7 +119,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
 // iterator that works even if the current value is removed while iterating
 class Iterator<T> {
     private _sortedArray: SortedArray<T> | null
-    private _current: T | null = null;
+    private _current: T | null | undefined
 
     constructor(sortedArray: SortedArray<T>) {
         this._sortedArray = sortedArray;
@@ -169,7 +166,7 @@ export function tests() {
             assert.equal(sa._getNext("f"), undefined);
         },
         "iterator with removals": assert => {
-            const queue = new SortedArray<{ idx: number }>((a, b) => a.idx - b.idx);
+            const queue = new SortedArray<{idx: number}>((a, b) => a.idx - b.idx);
             queue.setManyUnsorted([{idx: 5}, {idx: 3}, {idx: 1}, {idx: 4}, {idx: 2}]);
             const it = queue[Symbol.iterator]();
             assert.equal(it.next().value.idx, 1);

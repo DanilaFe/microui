@@ -41,19 +41,19 @@ export class ObservableArray<T> extends BaseObservableList<T> {
         }
     }
 
-    insert(idx: number, item:T ): void {
+    insert(idx: number, item: T): void {
         this._items.splice(idx, 0, item);
         this.emitAdd(idx, item);
     }
 
-    update(idx: number, item: T, params: any | false = false): void {
+    update(idx: number, item: T, params: any = null): void {
         if (idx < this._items.length) {
             this._items[idx] = item;
             this.emitUpdate(idx, item, params);
         }
     }
 
-    get array(): T[] {
+    get array(): Readonly<T[]> {
         return this._items;
     }
 
@@ -63,11 +63,11 @@ export class ObservableArray<T> extends BaseObservableList<T> {
         }
     }
 
-    override get length(): number {
+    get length(): number {
         return this._items.length;
     }
 
-    override [Symbol.iterator]() {
+    [Symbol.iterator]() {
         return this._items.values();
     }
 }

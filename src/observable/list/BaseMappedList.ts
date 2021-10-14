@@ -18,18 +18,18 @@ limitations under the License.
 import {BaseObservableList} from "./BaseObservableList";
 import {findAndUpdateInArray} from "./common";
 
-type Mapper<F,T> = (value: F) => T;
-type Updater<F,T> = (mappedValue: T, params: any | false, value: F) => void;
+export type Mapper<F,T> = (value: F) => T
+export type Updater<F,T> = (mappedValue: T, params: any, value: F) => void;
 
 export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
-    protected _sourceList: BaseObservableList<F>
+    protected _sourceList: BaseObservableList<F>;
     protected _sourceUnsubscribe: (() => void) | null = null;
     _mapper: Mapper<F,R>;
-    _updater: Updater<F,T> | null;
-    _removeCallback: ((value: T) => void) | null;
-    _mappedValues: T[] | null = null
+    _updater?: Updater<F,T>;
+    _removeCallback?: (value: T) => void;
+    _mappedValues: T[] | null = null;
 
-    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,R>, updater: Updater<F,T> | null = null, removeCallback: ((value: T) => void) | null = null) {
+    constructor(sourceList: BaseObservableList<F>, mapper: Mapper<F,R>, updater?: Updater<F,T>, removeCallback?: (value: T) => void) {
         super();
         this._sourceList = sourceList;
         this._mapper = mapper;
@@ -41,11 +41,11 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
         return findAndUpdateInArray(predicate, this._mappedValues!, this, updater);
     }
 
-    override get length(): number {
+    get length() {
         return this._mappedValues!.length;
     }
 
-    override [Symbol.iterator]() {
+    [Symbol.iterator]() {
         return this._mappedValues!.values();
     }
 }
@@ -55,7 +55,7 @@ export function runAdd<F,T,R>(list: BaseMappedList<F,T,R>, index: number, mapped
     list.emitAdd(index, mappedValue);
 }
 
-export function runUpdate<F,T,R>(list: BaseMappedList<F,T,R>, index: number, value: F, params: any | false): void {
+export function runUpdate<F,T,R>(list: BaseMappedList<F,T,R>, index: number, value: F, params: any): void {
     const mappedValue = list._mappedValues![index];
     if (list._updater) {
         list._updater(mappedValue, params, value);

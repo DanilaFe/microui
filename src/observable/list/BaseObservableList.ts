@@ -16,15 +16,26 @@ limitations under the License.
 
 import {BaseObservable} from "../BaseObservable";
 
-export interface IObservableListHandler<T> {
+export interface IListObserver<T> {
     onReset(list: BaseObservableList<T>): void;
-    onAdd(index: number, value: T, list: BaseObservableList<T>): void;
-    onUpdate(index: number, value: T, params: any | false, list: BaseObservableList<T>): void;
-    onRemove(index: number, value: T, list: BaseObservableList<T>): void;
-    onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void;
+    onAdd(index: number, value:T, list: BaseObservableList<T>): void;
+    onUpdate(index: number, value: T, params: any, list: BaseObservableList<T>): void;
+    onRemove(index: number, value: T, list: BaseObservableList<T>): void
+    onMove(from: number, to: number, value: T, list: BaseObservableList<T>): void
 }
 
-export abstract class BaseObservableList<T> extends BaseObservable<IObservableListHandler<T>> {
+export function defaultObserverWith<T>(overrides: { [key in keyof IListObserver<T>]?: IListObserver<T>[key] }): IListObserver<T> {
+    const defaults = {
+        onReset(){},
+        onAdd(){},
+        onUpdate(){},
+        onRemove(){},
+        onMove(){},
+    }
+    return Object.assign(defaults, overrides);
+}
+
+export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> {
     emitReset() {
         for(let h of this._handlers) {
             h.onReset(this);
@@ -38,7 +49,7 @@ export abstract class BaseObservableList<T> extends BaseObservable<IObservableLi
         }
     }
 
-    emitUpdate(index: number, value: T, params: any | false = false): void {
+    emitUpdate(index: number, value: T, params?: any): void {
         for(let h of this._handlers) {
             h.onUpdate(index, value, params, this);
         }
