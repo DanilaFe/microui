@@ -11,3 +11,4 @@ export {MappedList} from "./observable/list/MappedList";
 export {ConcatList} from "./observable/list/ConcatList";
 export {ObservableArray} from "./observable/list/ObservableArray";
 export {SortedArray} from "./observable/list/SortedArray";
+export {FilteredList} from "./observable/list/FilteredList";
