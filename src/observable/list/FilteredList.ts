@@ -21,13 +21,13 @@ export class FilteredList<V> extends BaseObservableList<V> {
         }
     }
 
-    private _emitForUpdate(wasIncluded: boolean, isIncluded: boolean, idx: number, value: V, params: any = null): void {
+    private _emitForUpdate(wasIncluded: boolean, isIncluded: boolean, idx: number, value: V, params: any = null, update: boolean = true): void {
 
         if (wasIncluded && !isIncluded) {
             this.emitRemove(idx, value);
         } else if (!wasIncluded && isIncluded) {
             this.emitAdd(idx, value);
-        } else if (wasIncluded && isIncluded) {
+        } else if (wasIncluded && isIncluded && update) {
             this.emitUpdate(idx, value, params);
         }
     }
@@ -42,7 +42,7 @@ export class FilteredList<V> extends BaseObservableList<V> {
                 const wasIncluded = oldIncluded ? oldIncluded[i] : true;
                 this._included[i] = isIncluded;
                 if (!silent) {
-                    this._emitForUpdate(wasIncluded, isIncluded, translatedIndex, value);
+                    this._emitForUpdate(wasIncluded, isIncluded, translatedIndex, value, null, false);
                 }
                 if (isIncluded) translatedIndex++;
                 i++;
